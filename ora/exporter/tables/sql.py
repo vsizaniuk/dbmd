@@ -1,7 +1,7 @@
 import os
 from oracledb import Connection
 
-from bp_ora_agent_helper.exporter.sql import ExporterSQL
+from ora.exporter.sql import ExporterSQL
 
 
 class TablesSQL(ExporterSQL):

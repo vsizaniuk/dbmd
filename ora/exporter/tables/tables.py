@@ -4,10 +4,10 @@ import json
 import os
 from typing import AsyncGenerator
 
-from bp_ora_agent_helper.exporter.exporter import Exporter
+from ora.exporter.exporter import Exporter
 from ..sql import connect, get_env_or_raise
 
-import bp_ora_agent_helper.exporter.tables.sql as sql
+import ora.exporter.tables.sql as sql
 from .serializer import (TableSchema, UniqueConstraint, ForeignKeyReference,
                          ForeignKey, TableTrigger, Index, Column, ColumnType)
 
