@@ -1,25 +1,21 @@
 import asyncio
-import aiofiles
 import json
-import os
 from typing import AsyncGenerator
 
-from ora.exporter.exporter import Exporter
-from ..sql import connect, get_env_or_raise
+from dbmd.ora.exporter.exporter import Exporter
+from dbmd.ora.exporter.serializers import ColumnType
 
 import ora.exporter.tables.sql as sql
 from .serializer import (TableSchema, UniqueConstraint, ForeignKeyReference,
-                         ForeignKey, TableTrigger, Index, Column, ColumnType)
+                         ForeignKey, TableTrigger, Index, Column)
 
 
 
 class TablesExporter(Exporter):
 
 
-    def __init__(self, schema: str = None):
-        self.schema = schema or get_env_or_raise('ORA_SCHEMA')
-        self.pool = connect()
-        self.connections = []
+    def __init__(self, schema: str = None, subdir: str = 'tables'):
+        super().__init__(schema, subdir)
 
     async def get_tables(self):
 
@@ -101,10 +97,11 @@ class TablesExporter(Exporter):
                 yield c_type, uk
             elif c_type == 'R':
                 reference = cons['ref_constraint']
-                reference = ForeignKeyReference(db_schema=reference['schema'],
-                                                context_schema=self.schema,
+                reference = ForeignKeyReference(db_schema=self.schema,
+                                                context_schema=reference['schema'],
                                                 table=reference['table'],
                                                 columns=reference['columns'])
+
                 fk = ForeignKey(name=c_name, columns=c_columns, references=reference, on_delete=cons['delete_rule'])
                 yield c_type, fk
 
@@ -120,7 +117,8 @@ class TablesExporter(Exporter):
 
         for trigger in triggers:
 
-            yield TableTrigger(name=trigger['name'],
+            yield TableTrigger(db_schema=trigger['db_schema'],
+                               name=trigger['name'],
                                type=trigger['type'],
                                timing=trigger['event'],
                                status=trigger['status'])
@@ -142,7 +140,7 @@ class TablesExporter(Exporter):
                         columns=index['columns'],
                         expression=index['expression'])
 
-    async def gather_data(self) -> AsyncGenerator[TableSchema]:
+    async def gather_data(self) -> AsyncGenerator[tuple[TableSchema, str | None]]:
         try:
             tables = await self.get_tables()
             constraints = {tab: constraints for tab, constraints in await self.get_constraints()}
@@ -172,19 +170,6 @@ class TablesExporter(Exporter):
                     elif c_type == 'R':
                         table.foreign_keys.append(cons)
 
-                yield table
+                yield table, None
         finally:
-            for conn in self.connections:
-                conn.close()
-            self.connections.clear()
-
-
-
-    async def export_md(self):
-        path = os.path.join('.', 'bp_llm_help', self.schema, 'tables')
-        os.makedirs(path, exist_ok=True)
-
-        async for tab in self.gather_data():
-            file_path = os.path.join(path, f'{tab.name}.md')
-            async with aiofiles.open(file_path, 'w') as f:
-                await f.write(tab.render_md())
+            self.cleanup()

@@ -1,7 +1,6 @@
-import os
 from oracledb import Connection
 
-from ora.exporter.sql import ExporterSQL
+from dbmd.ora.exporter.sql import ExporterSQL
 
 
 class TablesSQL(ExporterSQL):
@@ -109,12 +108,13 @@ class TablesSQL(ExporterSQL):
     select tr.table_name,
            json_arrayagg(
              json_object(
+             'db_schema' value tr.owner,
              'name' value tr.trigger_name,
              'type' value tr.trigger_type,
              'event' value tr.triggering_event,
              'status' value tr.status
              )) as "triggers"
-      from user_triggers tr
+      from all_triggers tr
      where tr.table_owner = :schema
        and tr.base_object_type = 'TABLE'
     group by tr.table_name

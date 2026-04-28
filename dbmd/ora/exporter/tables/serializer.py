@@ -1,35 +1,5 @@
 from typing import List, Optional
-from ..serializers import ObjectTypes, MDBaseModel
-
-
-class ColumnType(MDBaseModel):
-    name: str
-    length: Optional[int] = None
-    precision: Optional[int] = None
-    scale: Optional[int] = None
-
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.convert_str()
-
-    def convert_str(self):
-        self.length=int(self.length) if self.length else None
-        self.precision = int(self.precision) if self.precision else None
-        self.scale = int(self.scale) if self.scale else None
-
-    def render_md(self):
-        if self.name == 'VARCHAR2':
-            res = f'{self.name}({self.length})'
-        elif self.name == 'NUMBER' and self.precision and self.precision > 0:
-            if self.scale and self.scale > 0:
-                res = f'{self.name}({self.precision}, {self.scale})'
-            else:
-                res = f'{self.name}({self.precision})'
-        else:
-            res = self.name
-
-        return res
+from ..serializers import ObjectTypes, MDBaseModel, ColumnType
 
 
 class Column(MDBaseModel):
@@ -40,12 +10,12 @@ class Column(MDBaseModel):
     description: Optional[str] = None
 
 
-    def render_md(self):
-        nullable = 'not null ' if not self.nullable else ''
-        default = self.default + ' ' if self.default else ''
-        desc = '--' + self.description if self.description else ''
+    def render_md(self, **kwargs):
+        nullable = ' not null' if not self.nullable else ''
+        default = f' {self.default}' if self.default else ''
+        desc = ' --' + self.description if self.description else ''
 
-        return f'- {self.name}: {self.type} {default}{nullable}{desc}'
+        return f'- {self.name}: {self.type}{default}{nullable}{desc}'
 
 
 class ForeignKeyReference(MDBaseModel):
@@ -55,7 +25,7 @@ class ForeignKeyReference(MDBaseModel):
     columns: List[str]
 
 
-    def render_md(self):
+    def render_md(self, **kwargs):
         external = self.db_schema != self.context_schema
 
         if external:
@@ -73,7 +43,7 @@ class ForeignKey(MDBaseModel):
     on_delete: Optional[str] = None
 
 
-    def render_md(self):
+    def render_md(self, **kwargs):
         return f'- {self.name}: ({','.join(self.columns)}) -> {self.references} [{self.on_delete}]'
 
 
@@ -82,7 +52,7 @@ class UniqueConstraint(MDBaseModel):
     columns: List[str]
 
 
-    def render_md(self):
+    def render_md(self, **kwargs):
         return f'- {self.name}: ({','.join(self.columns)})'
 
 
@@ -93,20 +63,21 @@ class Index(MDBaseModel):
     expression: Optional[str] = None
 
 
-    def render_md(self):
+    def render_md(self, **kwargs):
         expression = f' [{self.expression}]' if self.expression else ''
         return f'- {self.name}: ({','.join(self.columns)}) {self.type}{expression}'
 
 
 class TableTrigger(MDBaseModel):
+    db_schema: str
     name: str
     type: str
     timing: str
     status: str
 
 
-    def render_md(self):
-        return f'- {self.name}: {self.type} {self.timing} [{self.status}]'
+    def render_md(self, **kwargs):
+        return f'- {self.db_schema}.{self.name}: {self.type} {self.timing} [{self.status}]'
 
 
 class TableSchema(MDBaseModel):
@@ -124,7 +95,7 @@ class TableSchema(MDBaseModel):
     notes: Optional[str] = None
 
 
-    def render_md(self):
+    def render_md(self, **kwargs):
         res = f'# Table: {self.name} \n[TYPE:TABLE]\n[SCHEMA:{self.db_schema}]\n\n'
 
         if self.row_count:
@@ -158,5 +129,7 @@ class TableSchema(MDBaseModel):
             res += '## Triggers\n'
             for trigger in self.triggers:
                 res += f'{trigger}\n'
+
+        res += self._render_definition_path(**kwargs)
 
         return res
