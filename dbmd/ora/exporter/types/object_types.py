@@ -20,7 +20,7 @@ class TypesExporter(Exporter):
             conn = self.pool.acquire()
             self.connections.append(conn)
 
-            return sql.get_collection_types(conn)
+            return sql.get_collection_types(conn, self.schema)
 
         return await asyncio.to_thread(query_f)
 
@@ -30,7 +30,7 @@ class TypesExporter(Exporter):
             conn = self.pool.acquire()
             self.connections.append(conn)
 
-            return sql.get_scalar_types(conn)
+            return sql.get_scalar_types(conn, self.schema)
 
         return await asyncio.to_thread(query_f)
 
@@ -40,7 +40,7 @@ class TypesExporter(Exporter):
             conn = self.pool.acquire()
             self.connections.append(conn)
 
-            return sql.get_object_types(conn)
+            return sql.get_object_types(conn, self.schema)
 
         return await asyncio.to_thread(query_f)
 
@@ -50,7 +50,7 @@ class TypesExporter(Exporter):
             conn = self.pool.acquire()
             self.connections.append(conn)
 
-            return sql.get_object_types_definitions(conn)
+            return sql.get_object_types_definitions(conn, self.schema)
 
         return await asyncio.to_thread(query_f)
 

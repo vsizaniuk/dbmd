@@ -12,11 +12,13 @@ class TypesSQL(ExporterSQL):
                                            'db_schema' value ud.referenced_owner,
                                            'name' value ud.referenced_name)
                                returning clob) as dependencies
-            from user_dependencies ud
-            join user_types ut
+            from all_dependencies ud
+            join all_types ut
               on ut.type_name = ud.name
+             and ud.owner = ut.owner
            where ut.typecode = 'COLLECTION'
              and ud.referenced_owner != 'SYS'
+             and ut.owner = :schema
            group by ud.name)
         select t.type_name, 
                t.collection_type,
@@ -26,12 +28,14 @@ class TypesSQL(ExporterSQL):
                        max(case when lower(s.text) like '%varray%' then 'VARRAY' 
                                 when lower(s.text) like '%table%' then 'TABLE' end) as collection_type,
                        json_arrayagg(s.text order by s.line returning clob) as definition
-                  from user_types t
-                  left join user_source s
+                  from all_types t
+                  left join all_source s
                     on t.type_name = s.name
+                   and t.owner = s.owner
                    and s.type = 'TYPE'
-        
+            
                  where t.typecode = 'COLLECTION'
+                   and t.owner = :schema
                  group by t.type_name) t
           left join dependencies d
             on t.type_name = d.name
@@ -40,13 +44,15 @@ class TypesSQL(ExporterSQL):
     select_scalar_types = '''
     select t.type_name,
            json_arrayagg(s.text order by s.line returning clob) as definition
-      from user_types t
-      left join user_source s
+      from all_types t
+      left join all_source s
         on t.type_name = s.name
+       and t.owner = s.owner
        and s.type = 'TYPE'
      where t.typecode != 'COLLECTION'
+       and t.owner = :schema
        and not exists
-     (select 1 from user_type_attrs a where a.type_name = t.type_name)
+     (select 1 from all_type_attrs a where a.type_name = t.type_name and a.owner = t.owner)
      group by t.type_name
     '''
 
@@ -57,11 +63,13 @@ class TypesSQL(ExporterSQL):
                                            'db_schema' value ud.referenced_owner,
                                            'name' value ud.referenced_name)
                                returning clob) as dependencies
-            from user_dependencies ud
-            join user_types ut
+            from all_dependencies ud
+            join all_types ut
               on ut.type_name = ud.name
+             and ud.owner = ut.owner
            where ut.typecode = 'OBJECT'
              and ud.referenced_owner != 'SYS'
+             and ut.owner = :schema
            group by ud.name),
         attribs as
          (select t.type_name,
@@ -73,7 +81,8 @@ class TypesSQL(ExporterSQL):
                                                                     'scale' value t.scale)) 
                                 order by t.attr_no returning clob) as "attributes"
         
-            from user_type_attrs t
+            from all_type_attrs t
+           where t.owner = :schema
            group by t.type_name),
         methods as
          (select t.type_name,
@@ -87,7 +96,8 @@ class TypesSQL(ExporterSQL):
                                            'is_inherited' value t.inherited) order by
                                t.method_no returning clob) as methods
         
-            from user_type_methods t
+            from all_type_methods t
+           where t.owner = :schema
            group by t.type_name)
         
         select json_object('super_owner' value t.supertype_owner,
@@ -99,7 +109,7 @@ class TypesSQL(ExporterSQL):
                a."attributes",
                m.methods
         
-          from user_types t
+          from all_types t
           left join attribs a
             on t.type_name = a.type_name
           left join dependencies d
@@ -108,6 +118,7 @@ class TypesSQL(ExporterSQL):
             on t.type_name = m.type_name
         
          where t.typecode = 'OBJECT'
+           and t.owner = :schema
            and exists
          (select 1 from user_type_attrs a where a.type_name = t.type_name)
     '''
@@ -116,36 +127,37 @@ class TypesSQL(ExporterSQL):
         select t.name as type_name,
                t.type,
                json_arrayagg(t.text order by t.LINE returning clob) as definition
-
-          from user_source t
+        
+          from all_source t
          where t.type in ('TYPE BODY', 'TYPE')
+           and t.owner = :schema
          group by t.name, t.type
         '''
 
-def get_collection_types(conn: Connection):
+def get_collection_types(conn: Connection, schema: str):
 
     with conn.cursor() as cur:
-        TypesSQL.select_collection_types.execute(cur)
+        TypesSQL.select_collection_types.execute(cur, {'schema': schema})
 
         return cur.fetchall()
 
-def get_scalar_types(conn: Connection):
+def get_scalar_types(conn: Connection, schema: str):
 
     with conn.cursor() as cur:
-        TypesSQL.select_scalar_types.execute(cur)
+        TypesSQL.select_scalar_types.execute(cur, {'schema': schema})
 
         return cur.fetchall()
 
-def get_object_types(conn: Connection):
+def get_object_types(conn: Connection, schema: str):
 
     with conn.cursor() as cur:
-        TypesSQL.select_object_types.execute(cur)
+        TypesSQL.select_object_types.execute(cur, {'schema': schema})
 
         return cur.fetchall()
 
-def get_object_types_definitions(conn: Connection):
+def get_object_types_definitions(conn: Connection, schema: str):
 
     with conn.cursor() as cur:
-        TypesSQL.select_object_types_definitions.execute(cur)
+        TypesSQL.select_object_types_definitions.execute(cur, {'schema': schema})
 
         return cur.fetchall()

@@ -48,9 +48,10 @@ class TriggersSQL(ExporterSQL):
                            t.text
                         end as signature,
                         t.text
-                   from user_source t
+                   from all_source t
                            
                   where t.type = 'TRIGGER'
+                    and t.owner = :schema
                   ) x
         group by x.name), 
        trigger_list as (
@@ -109,7 +110,7 @@ class TriggersSQL(ExporterSQL):
 def get_triggers(conn: Connection, schema: str):
 
     with conn.cursor() as cur:
-        TriggersSQL.select_triggers.execute(cur, (schema,))
+        TriggersSQL.select_triggers.execute(cur, {'schema': schema})
 
         return cur.fetchall()
 
@@ -117,6 +118,6 @@ def get_triggers(conn: Connection, schema: str):
 def get_triggers_definitions(conn: Connection, schema: str):
 
     with conn.cursor() as cur:
-        TriggersSQL.select_triggers_definitions.execute(cur, (schema,))
+        TriggersSQL.select_triggers_definitions.execute(cur, {'schema': schema})
 
         return cur.fetchall()

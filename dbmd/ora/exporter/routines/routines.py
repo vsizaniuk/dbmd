@@ -20,7 +20,7 @@ class RoutinesExporter(Exporter):
             conn = self.pool.acquire()
             self.connections.append(conn)
 
-            return sql.get_routines(conn)
+            return sql.get_routines(conn, self.schema)
 
         return await asyncio.to_thread(query_f)
 

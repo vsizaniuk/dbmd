@@ -4,7 +4,7 @@ from typing import AsyncGenerator
 from dbmd.ora.exporter.exporter import Exporter
 from dbmd.ora.exporter.serializers import ColumnType
 
-import ora.exporter.views.sql as sql
+from dbmd.ora.exporter.views import sql
 from .serializer import ViewSchema, ViewColumn
 
 
@@ -21,7 +21,7 @@ class ViewsExporter(Exporter):
             conn = self.pool.acquire()
             self.connections.append(conn)
 
-            return sql.get_views(conn)
+            return sql.get_views(conn, self.schema)
 
         return await asyncio.to_thread(query_f)
 

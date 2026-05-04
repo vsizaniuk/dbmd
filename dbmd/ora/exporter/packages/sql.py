@@ -15,13 +15,15 @@ class PackagesSQL(ExporterSQL):
                                                    'db_schema' value ud.referenced_owner,
                                                    'name' value ud.referenced_name)
                                        returning clob) as dependencies
-                    from user_dependencies ud
-                    join user_objects p
+                    from all_dependencies ud
+                    join all_objects p
                       on ud.name = p.object_name
                      and ud.type = p.object_type
+                     and ud.owner = p.owner
                      and p.object_type in ('PACKAGE BODY', 'PACKAGE')
         
                    where ud.referenced_owner != 'SYS'
+                     and p.owner = :schema
                    group by ud.name, p.object_type) t
         
            group by t.name),
@@ -51,9 +53,10 @@ class PackagesSQL(ExporterSQL):
                                 a.data_type
                              end) as return_type
         
-                    from user_arguments a
+                    from all_arguments a
         
                    where a.package_name is not null
+                     and a.owner = :schema
                    group by a.package_name, a.object_name, a.overload
         
                   ) t
@@ -69,9 +72,10 @@ class PackagesSQL(ExporterSQL):
                d.dependencies,
                pr.routines as public_routines
         
-          from user_objects t
-          left join user_objects pb
+          from all_objects t
+          left join all_objects pb
             on t.object_name = pb.object_name
+           and t.owner = pb.owner
            and pb.object_type = 'PACKAGE BODY'
           left join dependencies d
             on t.object_name = d.name
@@ -79,30 +83,32 @@ class PackagesSQL(ExporterSQL):
             on t.object_name = pr.package_name
         
          where t.object_type = 'PACKAGE'
+           and t.owner = :schema
     '''
 
     select_packages_definitions = '''
     select t.name as package_name,
            t.type,
            json_arrayagg(t.text order by t.LINE returning clob) as definition
-    
-      from user_source t
+        
+      from all_source t
      where t.type in ('PACKAGE BODY', 'PACKAGE')
+       and t.owner = :schema
      group by t.name, t.type
     '''
 
 
-def get_packages(conn: Connection):
+def get_packages(conn: Connection, schema: str):
 
     with conn.cursor() as cur:
-        PackagesSQL.select_packages.execute(cur)
+        PackagesSQL.select_packages.execute(cur, {'schema': schema})
 
         return cur.fetchall()
 
 
-def get_packages_definitions(conn: Connection):
+def get_packages_definitions(conn: Connection, schema: str):
 
     with conn.cursor() as cur:
-        PackagesSQL.select_packages_definitions.execute(cur)
+        PackagesSQL.select_packages_definitions.execute(cur, {'schema': schema})
 
         return cur.fetchall()

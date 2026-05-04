@@ -5,7 +5,7 @@ from typing import AsyncGenerator
 from dbmd.ora.exporter.exporter import Exporter
 from dbmd.ora.exporter.serializers import ColumnType
 
-import ora.exporter.tables.sql as sql
+from dbmd.ora.exporter.tables import sql
 from .serializer import (TableSchema, UniqueConstraint, ForeignKeyReference,
                          ForeignKey, TableTrigger, Index, Column)
 
@@ -23,7 +23,7 @@ class TablesExporter(Exporter):
             conn = self.pool.acquire()
             self.connections.append(conn)
 
-            return sql.get_tables(conn)
+            return sql.get_tables(conn, self.schema)
 
         return await asyncio.to_thread(query_f)
 
@@ -33,7 +33,7 @@ class TablesExporter(Exporter):
             conn = self.pool.acquire()
             self.connections.append(conn)
 
-            return sql.get_table_constraints(conn)
+            return sql.get_table_constraints(conn, self.schema)
 
         return await asyncio.to_thread(query_f)
 

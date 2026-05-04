@@ -22,10 +22,12 @@ class RoutinesSQL(ExporterSQL):
                   t.text
                end as signature
         
-          from user_source t
-          join user_procedures up
+          from all_source t
+          join all_procedures up
             on t.name = up.object_name
-         where up.object_type in ('PROCEDURE', 'FUNCTION')) t
+           and t.owner = up.owner
+         where up.object_type in ('PROCEDURE', 'FUNCTION')
+           and :schema = all(t.owner, up.owner)) t
          group by t.name
         ), params_data as (
         select a.object_name,
@@ -36,21 +38,24 @@ class RoutinesSQL(ExporterSQL):
                              order by a.position
                                               returning clob) as "parameters",
                max(case when a.position = 0 then a.data_type end) as return_type
-          from user_arguments a
-          join user_procedures up
+          from all_arguments a
+          join all_procedures up
             on a.object_name = up.object_name
+           and a.owner = up.owner
          where up.object_type in ('PROCEDURE', 'FUNCTION')
+           and :schema = all(a.owner, up.owner)
          group by a.object_name
         ), dependencies as (
         select ud.name,
                json_arrayagg(json_object('type' value lower(ud.referenced_type),
                                          'db_schema' value ud.referenced_owner,
                                          'name' value ud.referenced_name) returning clob) as dependencies
-          from user_dependencies ud
-          join user_procedures up
+          from all_dependencies ud
+          join all_procedures up
             on up.object_name = ud.name
          where up.object_type in ('PROCEDURE', 'FUNCTION')
            and ud.referenced_owner != 'SYS'
+           and :schema = all(ud.owner, up.owner)
          group by ud.name
         )
         select t.object_name,
@@ -61,7 +66,7 @@ class RoutinesSQL(ExporterSQL):
                rd.signature,
                rd.definition
         
-          from user_procedures t
+          from all_procedures t
           left join dependencies ud
             on t.object_name = ud.name
           left join params_data a
@@ -70,11 +75,12 @@ class RoutinesSQL(ExporterSQL):
             on t.object_name = rd.name
         
          where t.object_type in ('PROCEDURE', 'FUNCTION')
+           and t.owner = :schema
     '''
 
-def get_routines(conn: Connection):
+def get_routines(conn: Connection, schema: str):
 
     with conn.cursor() as cur:
-        RoutinesSQL.select_routines.execute(cur)
+        RoutinesSQL.select_routines.execute(cur, {'schema': schema})
 
         return cur.fetchall()
