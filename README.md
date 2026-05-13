@@ -9,10 +9,12 @@ Each object is exported as a self-contained `.md` file with structured tags (`[T
 | Database | Status |
 |----------|--------|
 | Oracle   | ✅ Supported |
-| PostgreSQL | 🔜 Planned |
+| PostgreSQL | ✅ Supported |
 | MSSQL    | 🔜 Planned |
 
 ## Exported object types
+
+### Oracle
 
 | Type | Description |
 |------|-------------|
@@ -23,25 +25,37 @@ Each object is exported as a self-contained `.md` file with structured tags (`[T
 | Triggers | Event, timing, table reference, SQL definition |
 | Types | Object types, collection types, scalar types |
 
+### PostgreSQL
+
+| Type | Description |
+|------|-------------|
+| Tables | Columns, constraints, indexes, triggers, row counts |
+| Views | Columns, dependencies, SQL definition |
+| Routines | Functions and procedures with signatures, parameters, dependencies |
+| Triggers | Event, timing, table reference, function reference, SQL definition |
+| Types | Composite types, enum types, domain types |
+
 ## Output structure
 
 ```
 mddb/
-└── <SCHEMA>/
+└── <schema>/
     ├── tables/
-    │   ├── MY_TABLE.md
-    │   └── ...
+    │   └── my_table.md
     ├── views/
-    ├── packages/
-    │   ├── MY_PACKAGE.md
+    │   └── my_view.md
+    ├── packages/          # Oracle only
+    │   ├── my_package.md
     │   └── definitions/
-    │       └── MY_PACKAGE.sql
+    │       └── my_package.sql
     ├── routines/
-    │   ├── MY_FUNCTION.md
+    │   ├── my_function.md
     │   └── definitions/
+    │       └── my_function.sql
     ├── triggers/
-    ├── types/
-    └── views/
+    │   └── my_trigger.md
+    └── types/
+        └── my_type.md
 ```
 
 ## Installation
@@ -56,8 +70,9 @@ pip install .
 
 Create a `.env` file in the working directory. All variables are required unless marked optional.
 
+### Oracle
+
 ```env
-# Oracle Instant Client
 # Path to the Oracle Instant Client libraries directory.
 # Download from: https://www.oracle.com/database/technologies/instant-client.html
 ORA_INSTA_CLIENT_PATH=C:\oracle\instantclient_19_28
@@ -67,8 +82,7 @@ ORA_INSTA_CLIENT_PATH=C:\oracle\instantclient_19_28
 ORA_USER=my_user
 ORA_PASSWORD=my_password
 
-# TNS configuration
-# Path to the directory containing tnsnames.ora (TNS admin directory)
+# Path to the directory containing tnsnames.ora
 ORA_TNS_PATH=C:\oracle\tns_admin
 # TNS alias as defined in tnsnames.ora
 ORA_DSN=MY_DB_ALIAS
@@ -77,10 +91,30 @@ ORA_DSN=MY_DB_ALIAS
 ORA_SCHEMA=MY_SCHEMA
 
 # Connection pool
-ORA_MIN_CONN_CNT=4   # Minimum number of connections kept open
-ORA_MAX_CONN_CNT=10  # Maximum number of connections in the pool
+ORA_MIN_CONN_CNT=4
+ORA_MAX_CONN_CNT=10
+```
 
-# Logging (optional)
+### PostgreSQL
+
+```env
+PG_HOST=localhost
+PG_PORT=5432
+PG_USER=my_user
+PG_PASSWORD=my_password
+PG_DBNAME=my_database
+
+# Schema to export
+PG_SCHEMA=my_schema
+
+# Connection pool
+PG_MIN_CONN_CNT=4
+PG_MAX_CONN_CNT=10
+```
+
+### Logging (optional, both databases)
+
+```env
 MDDB_LOG_LEVEL=INFO   # DEBUG, INFO, WARNING, ERROR (default: INFO)
 MDDB_WRITE_LOG_FILE=0 # Set to 1 to write logs to a timestamped file
 ```
@@ -94,44 +128,51 @@ dbmd export all
 # Export a specific object type
 dbmd export tables
 dbmd export views
-dbmd export packages
 dbmd export routines
 dbmd export triggers
 dbmd export types
+dbmd export packages   # Oracle only
+
+# Select database type (default: oracle)
+dbmd --db postgres export all
+dbmd --db oracle export all
 
 # Override schema at runtime
-dbmd --schema OTHER_SCHEMA export all
-
-# Specify database type (for future multi-db support)
-dbmd --db oracle export all
+dbmd --db postgres --schema other_schema export all
 ```
 
 ## Example output
 
-**Table:**
+**Table (PostgreSQL):**
 ```markdown
-# Table: INVOICE
+# Table: orders
 [TYPE:TABLE]
-[SCHEMA:MY_SCHEMA]
+[SCHEMA:my_schema]
+
+Customer orders
 
 ## Statistics
-- Rows count: 1482301
+- Rows count: 0
 
 ## Columns
-- INVOICE_ID: NUMBER not null
-- ACCOUNT_ID: NUMBER not null
-- AMOUNT: NUMBER(32, 6) not null
-- STATUS: VARCHAR2(64) not null
-- CREATED: TIMESTAMP(6) WITH TIME ZONE not null
+- id: integer default nextval('my_schema.orders_id_seq'::regclass) not null
+- customer_id: integer not null
+- status: my_schema.order_status default 'pending'::my_schema.order_status not null
+- total_amount: numeric(12,2)
+- created_at: timestamp without time zone default now()
 
 ## Primary key
-- INVOICE$INVOICE_ID$PK: (INVOICE_ID)
+- orders_pk: (id)
 
 ## Foreign keys
-- INVOICE$ACCOUNT_ID$FK: (ACCOUNT_ID) -> ACCOUNT (ACCOUNT_ID) [None]
+- orders_customer_fk: (customer_id) -> customers (id) [RESTRICT]
+
+## Indexes
+- orders_pending_idx: (created_at) btree
+  `CREATE INDEX orders_pending_idx ON my_schema.orders USING btree (created_at) WHERE (status = 'pending'::my_schema.order_status)`
 ```
 
-**Package:**
+**Package (Oracle):**
 ```markdown
 # Package: BILLING_ADMIN
 [TYPE:PACKAGE]
