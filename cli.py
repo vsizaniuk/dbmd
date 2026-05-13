@@ -1,11 +1,13 @@
 import asyncio
 import click
 
-from dbmd.ora.exporter.orchestrator import Orchestrator
+from dbmd.ora.exporter.orchestrator import Orchestrator as OraOrchestrator
+from dbmd.pg.exporter.orchestrator import Orchestrator as PGOrchestrator
 
 
 DB_ORCHESTRATORS = {
-    'oracle': Orchestrator,
+    'oracle':   OraOrchestrator,
+    'postgres': PGOrchestrator,
 }
 
 
@@ -24,7 +26,7 @@ class NestedHelpGroup(click.Group):
                 formatter.write_dl(commands)
 
 
-def get_orchestrator(db: str, schema: str) -> Orchestrator:
+def get_orchestrator(db: str, schema: str) -> OraOrchestrator | PGOrchestrator:
     cls = DB_ORCHESTRATORS.get(db)
     if not cls:
         raise click.BadParameter(f"Unsupported DB type: '{db}'. Choose from: {', '.join(DB_ORCHESTRATORS)}")
@@ -75,10 +77,12 @@ def export_routines(ctx):
     asyncio.run(orchestrator.export_routines())
 
 
-@export.command('packages', help='Export packages')
+@export.command('packages', help='Export packages (Oracle only)')
 @click.pass_context
 def export_packages(ctx):
     orchestrator = get_orchestrator(ctx.obj['db'], ctx.obj['schema'])
+    if not hasattr(orchestrator, 'export_packages'):
+        raise click.UsageError(f"'{ctx.obj['db']}' does not support packages")
     asyncio.run(orchestrator.export_packages())
 
 
