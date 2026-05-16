@@ -18,6 +18,9 @@ dependencies = [
 [project.scripts]
 dbmd = "cli:cli"
 
+[tool.setuptools]
+py-modules = ["cli"]
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["dbmd*"]
