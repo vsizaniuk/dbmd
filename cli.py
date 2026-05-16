@@ -1,13 +1,11 @@
 import asyncio
 import click
-
-from dbmd.ora.exporter.orchestrator import Orchestrator as OraOrchestrator
-from dbmd.pg.exporter.orchestrator import Orchestrator as PGOrchestrator
+import importlib
 
 
-DB_ORCHESTRATORS = {
-    'oracle':   OraOrchestrator,
-    'postgres': PGOrchestrator,
+_DB_MODULES = {
+    'oracle':   'dbmd.ora.exporter.orchestrator',
+    'postgres': 'dbmd.pg.exporter.orchestrator',
 }
 
 
@@ -26,11 +24,13 @@ class NestedHelpGroup(click.Group):
                 formatter.write_dl(commands)
 
 
-def get_orchestrator(db: str, schema: str) -> OraOrchestrator | PGOrchestrator:
-    cls = DB_ORCHESTRATORS.get(db)
-    if not cls:
-        raise click.BadParameter(f"Unsupported DB type: '{db}'. Choose from: {', '.join(DB_ORCHESTRATORS)}")
-    return cls(schema)
+def get_orchestrator(db: str, schema: str):
+    module_path = _DB_MODULES.get(db)
+    if not module_path:
+        raise click.BadParameter(f"Unsupported DB type: '{db}'. Choose from: {', '.join(_DB_MODULES)}")
+
+    module = importlib.import_module(module_path)
+    return module.Orchestrator(schema)
 
 
 @click.group(cls=NestedHelpGroup)
