@@ -52,6 +52,14 @@ class TriggersSQL(ExporterSQL):
                            
                   where t.type = 'TRIGGER'
                     and t.owner = :schema
+                    and not exists (
+                            select 1
+                              from all_source s
+                             where s.owner = t.owner
+                               and s.name  = t.name
+                               and s.type  = t.type
+                               and asciistr(s.text) != s.text
+                        )
                   ) x
         group by x.name), 
        trigger_list as (

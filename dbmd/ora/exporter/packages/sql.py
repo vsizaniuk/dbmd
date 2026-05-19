@@ -94,6 +94,14 @@ class PackagesSQL(ExporterSQL):
       from all_source t
      where t.type in ('PACKAGE BODY', 'PACKAGE')
        and t.owner = :schema
+       and not exists (
+               select 1
+                 from all_source s
+                where s.owner = t.owner
+                  and s.name  = t.name
+                  and s.type  = t.type
+                  and asciistr(s.text) != s.text
+           )
      group by t.name, t.type
     '''
 
