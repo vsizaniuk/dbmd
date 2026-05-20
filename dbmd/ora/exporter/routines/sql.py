@@ -27,7 +27,15 @@ class RoutinesSQL(ExporterSQL):
             on t.name = up.object_name
            and t.owner = up.owner
          where up.object_type in ('PROCEDURE', 'FUNCTION')
-           and :schema = all(t.owner, up.owner)) t
+           and :schema = all(t.owner, up.owner)
+           and not exists (
+                   select 1
+                     from all_source s
+                    where s.owner = t.owner
+                      and s.name  = t.name
+                      and s.type  = t.type
+                      and asciistr(s.text) != s.text
+               )) t
          group by t.name
         ), params_data as (
         select a.object_name,

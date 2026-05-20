@@ -33,7 +33,15 @@ class TypesSQL(ExporterSQL):
                     on t.type_name = s.name
                    and t.owner = s.owner
                    and s.type = 'TYPE'
-            
+                   and not exists (
+                           select 1
+                             from all_source sx
+                            where sx.owner = s.owner
+                              and sx.name  = s.name
+                              and sx.type  = s.type
+                              and asciistr(sx.text) != sx.text
+                       )
+
                  where t.typecode = 'COLLECTION'
                    and t.owner = :schema
                  group by t.type_name) t
@@ -49,6 +57,14 @@ class TypesSQL(ExporterSQL):
         on t.type_name = s.name
        and t.owner = s.owner
        and s.type = 'TYPE'
+       and not exists (
+               select 1
+                 from all_source sx
+                where sx.owner = s.owner
+                  and sx.name  = s.name
+                  and sx.type  = s.type
+                  and asciistr(sx.text) != sx.text
+           )
      where t.typecode != 'COLLECTION'
        and t.owner = :schema
        and not exists
@@ -131,6 +147,14 @@ class TypesSQL(ExporterSQL):
           from all_source t
          where t.type in ('TYPE BODY', 'TYPE')
            and t.owner = :schema
+           and not exists (
+                   select 1
+                     from all_source s
+                    where s.owner = t.owner
+                      and s.name  = t.name
+                      and s.type  = t.type
+                      and asciistr(s.text) != s.text
+               )
          group by t.name, t.type
         '''
 
