@@ -4,7 +4,7 @@ import os
 import aiofiles
 
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 from .serializers import MDBaseModel, Dependency, Parameter
 from .sql import connect, get_env_or_raise
 

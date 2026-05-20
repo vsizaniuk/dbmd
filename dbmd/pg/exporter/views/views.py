@@ -1,4 +1,4 @@
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from dbmd.serializers import MDBaseModel
 from dbmd.pg.exporter.exporter import Exporter

@@ -1,5 +1,5 @@
 import asyncio
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from dbmd.ora.exporter.exporter import Exporter
 from dbmd.ora.exporter.serializers import ColumnType

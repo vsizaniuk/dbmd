@@ -3,7 +3,7 @@ import os
 import aiofiles
 
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from dbmd.serializers import MDBaseModel, Dependency
 from dbmd.pg.exporter.serializers import Parameter
