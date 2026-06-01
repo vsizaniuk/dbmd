@@ -5,7 +5,7 @@ from dbmd.pg.exporter.exporter import Exporter
 from dbmd.pg.exporter.sql import connect
 from dbmd.pg.exporter.tables import sql
 from .serializer import (Column, ForeignKeyReference, ForeignKey,
-                          UniqueConstraint, Index, TableTrigger, TableSchema)
+                          UniqueConstraint, Index, TableTrigger, TableSchema, Partitioning)
 
 
 _DELETE_RULES = {
@@ -83,17 +83,31 @@ class TablesExporter(Exporter):
             function=tr['function']
         ) for tr in triggers]
 
+    @staticmethod
+    def convert_partitioning(row) -> Partitioning | None:
+        if row is None:
+            return None
+        return Partitioning(
+            strategy=row['partitioning_type'],
+            partition_key=row['partition_key'],
+            partition_count=row['partition_count'],
+            subpartition_strategy=row['subpartitioning_type'],
+            subpartition_key=row['subpartition_key']
+        )
+
     async def gather_data(self) -> AsyncGenerator[tuple[MDBaseModel, str | None]]:
         pool = await connect()
         async with pool.acquire() as conn:
-            tables          = await sql.get_tables(conn, self.schema, self.name)
+            tables           = await sql.get_tables(conn, self.schema, self.name)
             constraints_rows = await sql.get_table_constraints(conn, self.schema, self.name)
-            indexes_rows    = await sql.get_table_indexes(conn, self.schema, self.name)
-            triggers_rows   = await sql.get_table_triggers(conn, self.schema, self.name)
+            indexes_rows     = await sql.get_table_indexes(conn, self.schema, self.name)
+            triggers_rows    = await sql.get_table_triggers(conn, self.schema, self.name)
+            partitions_rows  = await sql.get_table_partitions(conn, self.schema, self.name)
 
-        constraints = {row['table_name']: row['constraints'] for row in constraints_rows}
-        indexes     = {row['table_name']: row['indexes']     for row in indexes_rows}
-        triggers    = {row['table_name']: row['triggers']    for row in triggers_rows}
+        constraints = {row['table_name']: row['constraints']   for row in constraints_rows}
+        indexes     = {row['table_name']: row['indexes']        for row in indexes_rows}
+        triggers    = {row['table_name']: row['triggers']       for row in triggers_rows}
+        partitions  = {row['table_name']: row                   for row in partitions_rows}
 
         for row in tables:
             table = TableSchema(
@@ -112,7 +126,8 @@ class TablesExporter(Exporter):
                 elif c_type == 'f':
                     table.foreign_keys.append(con)
 
-            table.indexes  = self.convert_indexes(indexes.get(row['table_name']))
-            table.triggers = self.convert_triggers(triggers.get(row['table_name']))
+            table.indexes       = self.convert_indexes(indexes.get(row['table_name']))
+            table.triggers      = self.convert_triggers(triggers.get(row['table_name']))
+            table.partitioning  = self.convert_partitioning(partitions.get(row['table_name']))
 
             yield table, None

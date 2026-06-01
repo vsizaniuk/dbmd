@@ -7,7 +7,7 @@ from dbmd.ora.exporter.serializers import ColumnType
 
 from dbmd.ora.exporter.tables import sql
 from .serializer import (TableSchema, UniqueConstraint, ForeignKeyReference,
-                         ForeignKey, TableTrigger, Index, Column)
+                         ForeignKey, TableTrigger, Index, Column, Partitioning)
 
 
 
@@ -54,6 +54,16 @@ class TablesExporter(Exporter):
             self.connections.append(conn)
 
             return sql.get_table_indexes(conn, self.schema, self.name)
+
+        return await asyncio.to_thread(query_f)
+
+    async def get_partitions(self):
+
+        def query_f():
+            conn = self.pool.acquire()
+            self.connections.append(conn)
+
+            return sql.get_table_partitions(conn, self.schema, self.name)
 
         return await asyncio.to_thread(query_f)
 
@@ -124,6 +134,34 @@ class TablesExporter(Exporter):
                                status=trigger['status'])
 
     @staticmethod
+    def convert_partitioning(data: list | None) -> Partitioning | None:
+        if data is None:
+            return None
+        partitioning_type, partition_count, subpartitioning_type, subpartitions_per_partition, partition_key, subpartition_key = data
+
+        if partition_key:
+            if not isinstance(partition_key, str):
+                partition_key = partition_key.read()
+            cols = json.loads(partition_key)
+            partition_key = f'({", ".join(cols)})'
+
+        sub_key = None
+        if subpartition_key:
+            if not isinstance(subpartition_key, str):
+                subpartition_key = subpartition_key.read()
+            cols = json.loads(subpartition_key)
+            sub_key = f'({", ".join(cols)})'
+
+        return Partitioning(
+            strategy=partitioning_type,
+            partition_key=partition_key,
+            partition_count=partition_count,
+            subpartition_strategy=subpartitioning_type,
+            subpartition_key=sub_key,
+            subpartitions_per_partition=subpartitions_per_partition
+        )
+
+    @staticmethod
     def convert_indexes(indexes):
 
         if indexes:
@@ -146,6 +184,7 @@ class TablesExporter(Exporter):
             constraints = {tab: constraints for tab, constraints in await self.get_constraints()}
             triggers = {tab: triggers for tab, triggers in await self.get_triggers()}
             indexes = {tab: indexes for tab, indexes in await self.get_indexes()}
+            partitions = {tab: data for tab, *data in await self.get_partitions()}
 
             for table_name, table_desc, table_columns, row_count in tables:
 
@@ -161,6 +200,7 @@ class TablesExporter(Exporter):
 
                 table.triggers = [t for t in self.convert_triggers(table_triggers)]
                 table.indexes = [i for i in self.convert_indexes(table_indexes)]
+                table.partitioning = self.convert_partitioning(partitions.get(table_name))
 
                 for c_type, cons in self.convert_constraints(table_constraints):
                     if c_type == 'P':

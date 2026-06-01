@@ -69,6 +69,24 @@ class TableTrigger(MDBaseModel):
         return f'- {self.function_schema}.{self.function}: {self.type} {self.timing} [{status}]'
 
 
+class Partitioning(MDBaseModel):
+    strategy: str
+    partition_key: str
+    partition_count: int
+    subpartition_strategy: str | None = None
+    subpartition_key: str | None = None
+
+    def render_md(self, **kwargs):
+        res  = '## Partitioning\n'
+        res += f'- Strategy: {self.strategy}\n'
+        res += f'- Key: {self.partition_key}\n'
+        res += f'- Partitions: {self.partition_count}\n'
+        if self.subpartition_strategy:
+            res += f'- Subpartition strategy: {self.subpartition_strategy}\n'
+            res += f'- Subpartition key: {self.subpartition_key}\n'
+        return res
+
+
 class TableSchema(MDBaseModel):
     db_schema:          str
     name:               str
@@ -81,6 +99,7 @@ class TableSchema(MDBaseModel):
     indexes:            list[Index] = []
     triggers:           list[TableTrigger] = []
     row_count:          int | None = None
+    partitioning:       Partitioning | None = None
 
     def render_md(self, **kwargs):
         res = f'# Table: {self.name} \n[TYPE:TABLE]\n[SCHEMA:{self.db_schema}]\n\n'
@@ -91,6 +110,9 @@ class TableSchema(MDBaseModel):
         if self.row_count is not None:
             res += '## Statistics\n'
             res += f'- Rows count: {self.row_count}\n'
+
+        if self.partitioning:
+            res += f'{self.partitioning}\n'
 
         res += '## Columns\n'
         for col in self.columns:

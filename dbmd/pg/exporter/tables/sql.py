@@ -28,7 +28,8 @@ class TablesSQL(ExporterSQL):
          where n.nspname  = $1
            and a.attnum   > 0
            and not a.attisdropped
-           and c.relkind  = 'r'
+           and c.relkind  in ('r', 'p')
+           and not c.relispartition
            and ($2::text is null or c.relname = $2)
          group by a.attrelid
     )
@@ -46,7 +47,8 @@ class TablesSQL(ExporterSQL):
        and s.schemaname = n.nspname
       left join columns cols
         on cols.attrelid = c.oid
-     where c.relkind = 'r'
+     where c.relkind in ('r', 'p')
+       and not c.relispartition
        and ($2::text is null or c.relname = $2)
      order by c.relname
     '''
@@ -196,6 +198,39 @@ class TablesSQL(ExporterSQL):
     '''
 
 
+    select_table_partitions = '''
+    select c.relname as table_name,
+           case pt.partstrat
+               when 'r' then 'RANGE'
+               when 'l' then 'LIST'
+               when 'h' then 'HASH'
+           end as partitioning_type,
+           (select count(*)
+              from pg_inherits pi
+             where pi.inhparent = c.oid)::int as partition_count,
+           regexp_replace(pg_get_partkeydef(c.oid), '^(RANGE|LIST|HASH) ', '') as partition_key,
+           (select case spt.partstrat
+                       when 'r' then 'RANGE'
+                       when 'l' then 'LIST'
+                       when 'h' then 'HASH'
+                   end
+              from pg_inherits pi
+              join pg_partitioned_table spt on spt.partrelid = pi.inhrelid
+             where pi.inhparent = c.oid
+             limit 1) as subpartitioning_type,
+           (select regexp_replace(pg_get_partkeydef(pi.inhrelid), '^(RANGE|LIST|HASH) ', '')
+              from pg_inherits pi
+              join pg_partitioned_table spt on spt.partrelid = pi.inhrelid
+             where pi.inhparent = c.oid
+             limit 1) as subpartition_key
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+      join pg_partitioned_table pt on pt.partrelid = c.oid
+     where n.nspname = $1
+       and ($2::text is null or c.relname = $2)
+    '''
+
+
 async def get_tables(conn: asyncpg.Connection, schema: str, name: str | None = None):
     return await TablesSQL.select_tables.execute(conn, schema, name)
 
@@ -210,3 +245,7 @@ async def get_table_indexes(conn: asyncpg.Connection, schema: str, name: str | N
 
 async def get_table_triggers(conn: asyncpg.Connection, schema: str, name: str | None = None):
     return await TablesSQL.select_table_triggers.execute(conn, schema, name)
+
+
+async def get_table_partitions(conn: asyncpg.Connection, schema: str, name: str | None = None):
+    return await TablesSQL.select_table_partitions.execute(conn, schema, name)

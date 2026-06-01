@@ -18,7 +18,7 @@ Each object is exported as a self-contained `.md` file with structured tags (`[T
 
 | Type | Description |
 |------|-------------|
-| Tables | Columns, constraints, indexes, triggers, row counts |
+| Tables | Columns, constraints, indexes, triggers, row counts, partition info |
 | Views | Columns, dependencies, SQL definition |
 | Packages | Public routines, spec/body dependencies, SQL definition |
 | Routines | Standalone functions and procedures with signatures |
@@ -29,7 +29,7 @@ Each object is exported as a self-contained `.md` file with structured tags (`[T
 
 | Type | Description |
 |------|-------------|
-| Tables | Columns, constraints, indexes, triggers, row counts |
+| Tables | Columns, constraints, indexes, triggers, row counts, partition info |
 | Views | Columns, dependencies, SQL definition |
 | Routines | Functions and procedures with signatures, parameters, dependencies |
 | Triggers | Event, timing, table reference, function reference, SQL definition |
@@ -72,6 +72,10 @@ Create a `.env` file in the working directory. All variables are required unless
 
 ### Oracle
 
+Two connection modes are supported.
+
+**Thick mode** (requires Oracle Instant Client — use for production/TNS-based connections):
+
 ```env
 # Path to the Oracle Instant Client libraries directory.
 # Download from: https://www.oracle.com/database/technologies/instant-client.html
@@ -91,6 +95,20 @@ ORA_DSN=MY_DB_ALIAS
 ORA_SCHEMA=MY_SCHEMA
 
 # Connection pool
+ORA_MIN_CONN_CNT=4
+ORA_MAX_CONN_CNT=10
+```
+
+**Thin mode** (no Instant Client required — use for local/Docker connections):
+
+```env
+# Omit ORA_INSTA_CLIENT_PATH and ORA_TNS_PATH entirely.
+# ORA_DSN must be a direct connect string: host:port/service_name
+ORA_USER=my_user
+ORA_PASSWORD=my_password
+ORA_DSN=localhost:1521/FREEPDB1
+
+ORA_SCHEMA=MY_SCHEMA
 ORA_MIN_CONN_CNT=4
 ORA_MAX_CONN_CNT=10
 ```
@@ -150,6 +168,27 @@ dbmd --db postgres --schema other_schema export all
 ```
 
 ## Example output
+
+**Partitioned table (Oracle):**
+```markdown
+# Table: SALES
+[TYPE:TABLE]
+[SCHEMA:MY_SCHEMA]
+
+## Partitioning
+- Strategy: RANGE
+- Key: (SALE_DATE)
+- Partitions: 4
+- Subpartition strategy: HASH
+- Subpartition key: (CUSTOMER_ID)
+- Subpartitions per partition: 2
+
+## Columns
+- ID: NUMBER not null
+- CUSTOMER_ID: NUMBER not null
+- AMOUNT: NUMBER(12, 2) not null
+- SALE_DATE: DATE not null
+```
 
 **Table (PostgreSQL):**
 ```markdown

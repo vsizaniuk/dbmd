@@ -18,17 +18,23 @@ def get_env_or_raise(key: str):
         raise RuntimeError
 
 
-oracledb.init_oracle_client(lib_dir=get_env_or_raise('ORA_INSTA_CLIENT_PATH'))
+_client_path = os.environ.get('ORA_INSTA_CLIENT_PATH')
+if _client_path:
+    oracledb.init_oracle_client(lib_dir=_client_path)
 
 
-POOL_PARAMS = oracledb.PoolParams(
-    user=get_env_or_raise('ORA_USER'),
-    password=get_env_or_raise('ORA_PASSWORD'),
-    config_dir=get_env_or_raise('ORA_TNS_PATH'),
-    min=int(get_env_or_raise('ORA_MIN_CONN_CNT')),
-    max=int(get_env_or_raise('ORA_MAX_CONN_CNT')),
-    increment=1
-)
+def _pool_params() -> oracledb.PoolParams:
+    kwargs = dict(
+        user=get_env_or_raise('ORA_USER'),
+        password=get_env_or_raise('ORA_PASSWORD'),
+        min=int(get_env_or_raise('ORA_MIN_CONN_CNT')),
+        max=int(get_env_or_raise('ORA_MAX_CONN_CNT')),
+        increment=1,
+    )
+    if _client_path:
+        kwargs['config_dir'] = get_env_or_raise('ORA_TNS_PATH')
+    return oracledb.PoolParams(**kwargs)
+
 
 pool: oracledb.ConnectionPool | None = None
 
@@ -38,7 +44,7 @@ def connect():
     if pool:
         return pool
 
-    pool = oracledb.create_pool(dsn=get_env_or_raise('ORA_DSN'), params=POOL_PARAMS)
+    pool = oracledb.create_pool(dsn=get_env_or_raise('ORA_DSN'), params=_pool_params())
 
     return pool
 

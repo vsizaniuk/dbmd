@@ -184,6 +184,31 @@ class TablesSQL(ExporterSQL):
     '''
 
 
+    select_table_partitions = '''
+    select pt.table_name,
+           pt.partitioning_type,
+           pt.partition_count,
+           case pt.subpartitioning_type when 'NONE' then null else pt.subpartitioning_type end
+               as subpartitioning_type,
+           case pt.subpartitioning_type when 'NONE' then null else pt.def_subpartition_count end
+               as subpartitions_per_partition,
+           (select json_arrayagg(c.column_name order by c.column_position returning clob)
+              from all_part_key_columns c
+             where c.owner = pt.owner
+               and c.name  = pt.table_name) as partition_key,
+           case pt.subpartitioning_type
+             when 'NONE' then null
+             else (select json_arrayagg(c.column_name order by c.column_position returning clob)
+                     from all_subpart_key_columns c
+                    where c.owner = pt.owner
+                      and c.name  = pt.table_name)
+           end as subpartition_key
+      from all_part_tables pt
+     where pt.owner = :schema
+       and (:name is null or pt.table_name = :name)
+    '''
+
+
 def get_tables(conn: Connection, schema: str, name: str | None = None):
 
     with conn.cursor() as cur:
@@ -212,5 +237,13 @@ def get_table_indexes(conn: Connection, schema: str, name: str | None = None):
 
     with conn.cursor() as cur:
         TablesSQL.select_table_indexes.execute(cur, {'schema': schema, 'name': name})
+
+        return cur.fetchall()
+
+
+def get_table_partitions(conn: Connection, schema: str, name: str | None = None):
+
+    with conn.cursor() as cur:
+        TablesSQL.select_table_partitions.execute(cur, {'schema': schema, 'name': name})
 
         return cur.fetchall()
