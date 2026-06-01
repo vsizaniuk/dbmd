@@ -62,6 +62,13 @@ def export_all(ctx):
     asyncio.run(orchestrator.export_all())
 
 
+@export.command('index', help='Export schema index')
+@click.pass_context
+def export_index(ctx):
+    orchestrator = get_orchestrator(ctx.obj['db'], ctx.obj['schema'])
+    asyncio.run(orchestrator.export_index())
+
+
 @export.command('tables', help='Export tables')
 @click.option('--name', default=None, callback=_validate_name, help='Export a single table by name')
 @click.pass_context

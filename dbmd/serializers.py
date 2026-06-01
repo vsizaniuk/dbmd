@@ -25,6 +25,34 @@ class MDBaseModel(BaseModel, ABC):
         return self.render_md()
 
 
+class SchemaIndex(MDBaseModel):
+    db_schema:  str
+    tables:     list[str] = []
+    views:      list[str] = []
+    functions:  list[str] = []
+    procedures: list[str] = []
+    packages:   list[str] = []
+    triggers:   list[str] = []
+    types:      list[str] = []
+
+    def render_md(self, **kwargs):
+        res = f'# Schema: {self.db_schema}\n\n'
+        for title, items in [
+            ('Tables',     self.tables),
+            ('Views',      self.views),
+            ('Functions',  self.functions),
+            ('Procedures', self.procedures),
+            ('Packages',   self.packages),
+            ('Triggers',   self.triggers),
+            ('Types',      self.types),
+        ]:
+            if items:
+                res += f'## {title}\n'
+                for item in items:
+                    res += f'- {item}\n'
+        return res
+
+
 class Dependency(MDBaseModel):
     type:      str
     db_schema: str

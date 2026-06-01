@@ -40,6 +40,7 @@ Each object is exported as a self-contained `.md` file with structured tags (`[T
 ```
 mddb/
 └── <schema>/
+    ├── <schema>.md        # schema index — all object names by type
     ├── tables/
     │   └── my_table.md
     ├── views/
@@ -151,6 +152,9 @@ dbmd export triggers
 dbmd export types
 dbmd export packages   # Oracle only
 
+# Export schema index only (all object names by type, written to <schema>/<schema>.md)
+dbmd export index
+
 # Export a single named object
 dbmd export tables --name MY_TABLE
 dbmd export views --name MY_VIEW
@@ -168,6 +172,30 @@ dbmd --db postgres --schema other_schema export all
 ```
 
 ## Example output
+
+**Schema index:**
+```markdown
+# Schema: my_schema
+
+## Tables
+- orders
+- customers
+- products
+
+## Views
+- orders_summary
+- customer_stats
+
+## Functions
+- get_invoice_total
+- calc_tax
+
+## Procedures
+- process_payment
+
+## Triggers
+- orders_audit_tr
+```
 
 **Partitioned table (Oracle):**
 ```markdown
