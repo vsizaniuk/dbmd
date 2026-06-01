@@ -36,6 +36,7 @@ class RoutinesSQL(ExporterSQL):
          where n.nspname  = $1
            and p.prokind in ('f', 'p')
            and t.argmode in ('i', 'b', 'v')
+           and ($2::text is null or p.proname = $2)
          group by p.oid
     ),
     routine_deps as (
@@ -84,8 +85,9 @@ class RoutinesSQL(ExporterSQL):
       left join routine_deps rd on rd.routine_oid = p.oid
      where n.nspname    = $1
        and p.prokind in ('f', 'p')
+       and ($2::text is null or p.proname = $2)
     '''
 
 
-async def get_routines(conn: asyncpg.Connection, schema: str):
-    return await RoutinesSQL.select_routines.execute(conn, schema)
+async def get_routines(conn: asyncpg.Connection, schema: str, name: str | None = None):
+    return await RoutinesSQL.select_routines.execute(conn, schema, name)

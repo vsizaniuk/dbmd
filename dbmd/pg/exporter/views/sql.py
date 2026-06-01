@@ -62,8 +62,9 @@ class ViewsSQL(ExporterSQL):
       left join view_deps vd
         on vd.view_name  = c.relname
      where c.relkind = 'v'
+       and ($2::text is null or c.relname = $2)
     '''
 
 
-async def get_views(conn: asyncpg.Connection, schema: str):
-    return await ViewsSQL.select_views.execute(conn, schema)
+async def get_views(conn: asyncpg.Connection, schema: str, name: str | None = None):
+    return await ViewsSQL.select_views.execute(conn, schema, name)

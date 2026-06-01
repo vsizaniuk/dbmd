@@ -24,6 +24,7 @@ class PackagesSQL(ExporterSQL):
         
                    where ud.referenced_owner != 'SYS'
                      and p.owner = :schema
+                     and (:name is null or p.object_name = :name)
                    group by ud.name, p.object_type) t
         
            group by t.name),
@@ -57,6 +58,7 @@ class PackagesSQL(ExporterSQL):
         
                    where a.package_name is not null
                      and a.owner = :schema
+                     and (:name is null or a.package_name = :name)
                    group by a.package_name, a.object_name, a.overload
         
                   ) t
@@ -84,6 +86,7 @@ class PackagesSQL(ExporterSQL):
         
          where t.object_type = 'PACKAGE'
            and t.owner = :schema
+           and (:name is null or t.object_name = :name)
     '''
 
     select_packages_definitions = '''
@@ -94,6 +97,7 @@ class PackagesSQL(ExporterSQL):
       from all_source t
      where t.type in ('PACKAGE BODY', 'PACKAGE')
        and t.owner = :schema
+       and (:name is null or t.name = :name)
        and not exists (
                select 1
                  from all_source s
@@ -106,17 +110,17 @@ class PackagesSQL(ExporterSQL):
     '''
 
 
-def get_packages(conn: Connection, schema: str):
+def get_packages(conn: Connection, schema: str, name: str | None = None):
 
     with conn.cursor() as cur:
-        PackagesSQL.select_packages.execute(cur, {'schema': schema})
+        PackagesSQL.select_packages.execute(cur, {'schema': schema, 'name': name})
 
         return cur.fetchall()
 
 
-def get_packages_definitions(conn: Connection, schema: str):
+def get_packages_definitions(conn: Connection, schema: str, name: str | None = None):
 
     with conn.cursor() as cur:
-        PackagesSQL.select_packages_definitions.execute(cur, {'schema': schema})
+        PackagesSQL.select_packages_definitions.execute(cur, {'schema': schema, 'name': name})
 
         return cur.fetchall()

@@ -70,11 +70,12 @@ class ViewsSQL(ExporterSQL):
                  group by v.view_name) dep
        on dep.view_name = uv.view_name
     where uv.owner = :schema
+      and (:name is null or uv.VIEW_NAME = :name)
     '''
 
-def get_views(conn: Connection, schema: str):
+def get_views(conn: Connection, schema: str, name: str | None = None):
 
     with conn.cursor() as cur:
-        ViewsSQL.select_views.execute(cur, {'schema': schema})
+        ViewsSQL.select_views.execute(cur, {'schema': schema, 'name': name})
 
         return cur.fetchall()

@@ -133,6 +133,14 @@ dbmd export triggers
 dbmd export types
 dbmd export packages   # Oracle only
 
+# Export a single named object
+dbmd export tables --name MY_TABLE
+dbmd export views --name MY_VIEW
+dbmd export routines --name MY_FUNC
+dbmd export packages --name MY_PKG
+dbmd export triggers --name MY_TRIGGER
+dbmd export types --name MY_TYPE
+
 # Select database type (default: oracle)
 dbmd --db postgres export all
 dbmd --db oracle export all

@@ -15,7 +15,7 @@ class TriggersExporter(Exporter):
     async def gather_data(self) -> AsyncGenerator[tuple[MDBaseModel, str | None]]:
         pool = await connect()
         async with pool.acquire() as conn:
-            triggers = await sql.get_triggers(conn, self.schema)
+            triggers = await sql.get_triggers(conn, self.schema, self.name)
 
         for row in triggers:
             trigger = TriggerDetails(

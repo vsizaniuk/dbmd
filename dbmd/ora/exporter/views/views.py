@@ -21,7 +21,7 @@ class ViewsExporter(Exporter):
             conn = self.pool.acquire()
             self.connections.append(conn)
 
-            return sql.get_views(conn, self.schema)
+            return sql.get_views(conn, self.schema, self.name)
 
         return await asyncio.to_thread(query_f)
 

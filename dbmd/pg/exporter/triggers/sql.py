@@ -36,9 +36,10 @@ class TriggersSQL(ExporterSQL):
         on pn.oid = p.pronamespace
      where n.nspname       = $1
        and not tr.tgisinternal
+       and ($2::text is null or tr.tgname = $2)
      order by t.relname, tr.tgname
     '''
 
 
-async def get_triggers(conn: asyncpg.Connection, schema: str):
-    return await TriggersSQL.select_triggers.execute(conn, schema)
+async def get_triggers(conn: asyncpg.Connection, schema: str, name: str | None = None):
+    return await TriggersSQL.select_triggers.execute(conn, schema, name)

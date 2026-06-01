@@ -52,7 +52,8 @@ class TablesSQL(ExporterSQL):
         on 1 = 1
       
       where t.owner = :schema
-         
+        and (:name is null or t.table_name = :name)
+
      order by t.table_name
     '''
 
@@ -99,7 +100,8 @@ class TablesSQL(ExporterSQL):
         
     where cons.constraint_type in ('U', 'R', 'P')
       and cons.owner = :schema
-        
+      and (:name is null or cons.table_name = :name)
+
     group by cons.owner,
              cons.table_name,
              cons.constraint_type,
@@ -124,6 +126,7 @@ class TablesSQL(ExporterSQL):
       from all_triggers tr
      where tr.table_owner = :schema
        and tr.base_object_type = 'TABLE'
+       and (:name is null or tr.table_name = :name)
     group by tr.table_name
     order by tr.table_name
     '''
@@ -171,6 +174,7 @@ class TablesSQL(ExporterSQL):
           
      where i.index_type != 'LOB'
        and i.table_owner = :schema
+       and (:name is null or i.table_name = :name)
      group by i.owner,
            i.table_name,
            i.index_name,
@@ -180,33 +184,33 @@ class TablesSQL(ExporterSQL):
     '''
 
 
-def get_tables(conn: Connection, schema: str):
+def get_tables(conn: Connection, schema: str, name: str | None = None):
 
     with conn.cursor() as cur:
-        TablesSQL.select_tables.execute(cur, {'schema': schema})
+        TablesSQL.select_tables.execute(cur, {'schema': schema, 'name': name})
 
         return cur.fetchall()
 
 
-def get_table_constraints(conn: Connection, schema: str):
+def get_table_constraints(conn: Connection, schema: str, name: str | None = None):
 
     with conn.cursor() as cur:
-        TablesSQL.select_table_constraints.execute(cur, {'schema': schema})
+        TablesSQL.select_table_constraints.execute(cur, {'schema': schema, 'name': name})
 
         return cur.fetchall()
 
 
-def get_table_triggers(conn: Connection, schema: str):
+def get_table_triggers(conn: Connection, schema: str, name: str | None = None):
 
     with conn.cursor() as cur:
-        TablesSQL.select_table_triggers.execute(cur, {'schema': schema})
+        TablesSQL.select_table_triggers.execute(cur, {'schema': schema, 'name': name})
 
         return cur.fetchall()
 
 
-def get_table_indexes(conn: Connection, schema: str):
+def get_table_indexes(conn: Connection, schema: str, name: str | None = None):
 
     with conn.cursor() as cur:
-        TablesSQL.select_table_indexes.execute(cur, {'schema': schema})
+        TablesSQL.select_table_indexes.execute(cur, {'schema': schema, 'name': name})
 
         return cur.fetchall()

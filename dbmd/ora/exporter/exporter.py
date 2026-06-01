@@ -19,6 +19,7 @@ class Exporter(ABC):
         self.pool = connect()
         self.connections = []
         self.subdir = subdir
+        self.name: str | None = None
 
     @staticmethod
     def read_clob_json(clob_json):

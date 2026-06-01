@@ -25,7 +25,8 @@ class Orchestrator:
         self.types = TypesExporter(self.schema)
 
     @staticmethod
-    async def _run(exporter: Exporter):
+    async def _run(exporter: Exporter, name: str | None = None):
+        exporter.name = name
         try:
             await exporter.export_md()
         except Exception as e:
@@ -39,32 +40,32 @@ class Orchestrator:
         ]])
         logger.info(f'Full export complete for schema: {self.schema}')
 
-    async def export_tables(self):
+    async def export_tables(self, name: str | None = None):
         logger.info(f'Starting tables export for schema: {self.schema}')
-        await self._run(self.tables)
+        await self._run(self.tables, name)
         logger.info(f'Tables export complete for schema: {self.schema}')
 
-    async def export_views(self):
+    async def export_views(self, name: str | None = None):
         logger.info(f'Starting views export for schema: {self.schema}')
-        await self._run(self.views)
+        await self._run(self.views, name)
         logger.info(f'Views export complete for schema: {self.schema}')
 
-    async def export_routines(self):
+    async def export_routines(self, name: str | None = None):
         logger.info(f'Starting routines export for schema: {self.schema}')
-        await self._run(self.routines)
+        await self._run(self.routines, name)
         logger.info(f'Routines export complete for schema: {self.schema}')
 
-    async def export_packages(self):
+    async def export_packages(self, name: str | None = None):
         logger.info(f'Starting packages export for schema: {self.schema}')
-        await self._run(self.packages)
+        await self._run(self.packages, name)
         logger.info(f'Packages export complete for schema: {self.schema}')
 
-    async def export_triggers(self):
+    async def export_triggers(self, name: str | None = None):
         logger.info(f'Starting triggers export for schema: {self.schema}')
-        await self._run(self.triggers)
+        await self._run(self.triggers, name)
         logger.info(f'Triggers export complete for schema: {self.schema}')
 
-    async def export_types(self):
+    async def export_types(self, name: str | None = None):
         logger.info(f'Starting types export for schema: {self.schema}')
-        await self._run(self.types)
+        await self._run(self.types, name)
         logger.info(f'Types export complete for schema: {self.schema}')

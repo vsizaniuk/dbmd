@@ -15,7 +15,7 @@ class RoutinesExporter(Exporter):
     async def gather_data(self) -> AsyncGenerator[tuple[MDBaseModel, str | None]]:
         pool = await connect()
         async with pool.acquire() as conn:
-            routines = await sql.get_routines(conn, self.schema)
+            routines = await sql.get_routines(conn, self.schema, self.name)
 
         for row in routines:
             params = self.convert_parameters(row['parameters'])

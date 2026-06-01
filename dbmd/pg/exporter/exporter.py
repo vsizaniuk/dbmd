@@ -17,6 +17,7 @@ class Exporter(ABC):
     def __init__(self, schema: str = None, subdir: str = None):
         self.schema = schema or get_env_or_raise('PG_SCHEMA')
         self.subdir = subdir
+        self.name: str | None = None
 
     @staticmethod
     def convert_dependencies(deps: list | None) -> list[Dependency]:

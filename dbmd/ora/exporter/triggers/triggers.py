@@ -20,7 +20,7 @@ class TriggersExporter(Exporter):
             conn = self.pool.acquire()
             self.connections.append(conn)
 
-            return sql.get_triggers(conn, self.schema)
+            return sql.get_triggers(conn, self.schema, self.name)
 
         return await asyncio.to_thread(query_f)
 
@@ -31,7 +31,7 @@ class TriggersExporter(Exporter):
             conn = self.pool.acquire()
             self.connections.append(conn)
 
-            return sql.get_triggers_definitions(conn, self.schema)
+            return sql.get_triggers_definitions(conn, self.schema, self.name)
 
         return await asyncio.to_thread(query_f)
 

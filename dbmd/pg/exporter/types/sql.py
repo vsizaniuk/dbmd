@@ -39,6 +39,7 @@ class TypesSQL(ExporterSQL):
       left join type_attrs ta
         on ta.attrelid = c.oid
      where n.nspname = $1
+       and ($2::text is null or t.typname = $2)
     '''
 
     select_enum_types = '''
@@ -52,6 +53,7 @@ class TypesSQL(ExporterSQL):
         on e.enumtypid = t.oid
      where n.nspname  = $1
        and t.typtype  = 'e'
+       and ($2::text is null or t.typname = $2)
      group by t.typname, t.oid
     '''
 
@@ -85,16 +87,17 @@ class TypesSQL(ExporterSQL):
         on dc.contypid = t.oid
      where n.nspname = $1
        and t.typtype = 'd'
+       and ($2::text is null or t.typname = $2)
     '''
 
 
-async def get_composite_types(conn: asyncpg.Connection, schema: str):
-    return await TypesSQL.select_composite_types.execute(conn, schema)
+async def get_composite_types(conn: asyncpg.Connection, schema: str, name: str | None = None):
+    return await TypesSQL.select_composite_types.execute(conn, schema, name)
 
 
-async def get_enum_types(conn: asyncpg.Connection, schema: str):
-    return await TypesSQL.select_enum_types.execute(conn, schema)
+async def get_enum_types(conn: asyncpg.Connection, schema: str, name: str | None = None):
+    return await TypesSQL.select_enum_types.execute(conn, schema, name)
 
 
-async def get_domain_types(conn: asyncpg.Connection, schema: str):
-    return await TypesSQL.select_domain_types.execute(conn, schema)
+async def get_domain_types(conn: asyncpg.Connection, schema: str, name: str | None = None):
+    return await TypesSQL.select_domain_types.execute(conn, schema, name)

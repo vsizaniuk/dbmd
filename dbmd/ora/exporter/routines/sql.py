@@ -28,6 +28,7 @@ class RoutinesSQL(ExporterSQL):
            and t.owner = up.owner
          where up.object_type in ('PROCEDURE', 'FUNCTION')
            and :schema = all(t.owner, up.owner)
+           and (:name is null or t.name = :name)
            and not exists (
                    select 1
                      from all_source s
@@ -52,6 +53,7 @@ class RoutinesSQL(ExporterSQL):
            and a.owner = up.owner
          where up.object_type in ('PROCEDURE', 'FUNCTION')
            and :schema = all(a.owner, up.owner)
+           and (:name is null or a.object_name = :name)
          group by a.object_name
         ), dependencies as (
         select ud.name,
@@ -64,6 +66,7 @@ class RoutinesSQL(ExporterSQL):
          where up.object_type in ('PROCEDURE', 'FUNCTION')
            and ud.referenced_owner != 'SYS'
            and :schema = all(ud.owner, up.owner)
+           and (:name is null or ud.name = :name)
          group by ud.name
         )
         select t.object_name,
@@ -84,11 +87,12 @@ class RoutinesSQL(ExporterSQL):
         
          where t.object_type in ('PROCEDURE', 'FUNCTION')
            and t.owner = :schema
+           and (:name is null or t.object_name = :name)
     '''
 
-def get_routines(conn: Connection, schema: str):
+def get_routines(conn: Connection, schema: str, name: str | None = None):
 
     with conn.cursor() as cur:
-        RoutinesSQL.select_routines.execute(cur, {'schema': schema})
+        RoutinesSQL.select_routines.execute(cur, {'schema': schema, 'name': name})
 
         return cur.fetchall()

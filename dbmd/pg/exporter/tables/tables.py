@@ -86,10 +86,10 @@ class TablesExporter(Exporter):
     async def gather_data(self) -> AsyncGenerator[tuple[MDBaseModel, str | None]]:
         pool = await connect()
         async with pool.acquire() as conn:
-            tables          = await sql.get_tables(conn, self.schema)
-            constraints_rows = await sql.get_table_constraints(conn, self.schema)
-            indexes_rows    = await sql.get_table_indexes(conn, self.schema)
-            triggers_rows   = await sql.get_table_triggers(conn, self.schema)
+            tables          = await sql.get_tables(conn, self.schema, self.name)
+            constraints_rows = await sql.get_table_constraints(conn, self.schema, self.name)
+            indexes_rows    = await sql.get_table_indexes(conn, self.schema, self.name)
+            triggers_rows   = await sql.get_table_triggers(conn, self.schema, self.name)
 
         constraints = {row['table_name']: row['constraints'] for row in constraints_rows}
         indexes     = {row['table_name']: row['indexes']     for row in indexes_rows}

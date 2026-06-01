@@ -9,6 +9,12 @@ _DB_MODULES = {
 }
 
 
+def _validate_name(ctx, param, value):
+    if value == '':
+        raise click.BadParameter('name cannot be empty')
+    return value
+
+
 class NestedHelpGroup(click.Group):
     def format_commands(self, ctx, formatter):
         commands = []
@@ -57,47 +63,53 @@ def export_all(ctx):
 
 
 @export.command('tables', help='Export tables')
+@click.option('--name', default=None, callback=_validate_name, help='Export a single table by name')
 @click.pass_context
-def export_tables(ctx):
+def export_tables(ctx, name):
     orchestrator = get_orchestrator(ctx.obj['db'], ctx.obj['schema'])
-    asyncio.run(orchestrator.export_tables())
+    asyncio.run(orchestrator.export_tables(name=name))
 
 
 @export.command('views', help='Export views')
+@click.option('--name', default=None, callback=_validate_name, help='Export a single view by name')
 @click.pass_context
-def export_views(ctx):
+def export_views(ctx, name):
     orchestrator = get_orchestrator(ctx.obj['db'], ctx.obj['schema'])
-    asyncio.run(orchestrator.export_views())
+    asyncio.run(orchestrator.export_views(name=name))
 
 
 @export.command('routines', help='Export standalone functions and procedures')
+@click.option('--name', default=None, callback=_validate_name, help='Export a single routine by name')
 @click.pass_context
-def export_routines(ctx):
+def export_routines(ctx, name):
     orchestrator = get_orchestrator(ctx.obj['db'], ctx.obj['schema'])
-    asyncio.run(orchestrator.export_routines())
+    asyncio.run(orchestrator.export_routines(name=name))
 
 
 @export.command('packages', help='Export packages (Oracle only)')
+@click.option('--name', default=None, callback=_validate_name, help='Export a single package by name')
 @click.pass_context
-def export_packages(ctx):
+def export_packages(ctx, name):
     orchestrator = get_orchestrator(ctx.obj['db'], ctx.obj['schema'])
     if not hasattr(orchestrator, 'export_packages'):
         raise click.UsageError(f"'{ctx.obj['db']}' does not support packages")
-    asyncio.run(orchestrator.export_packages())
+    asyncio.run(orchestrator.export_packages(name=name))
 
 
 @export.command('triggers', help='Export triggers')
+@click.option('--name', default=None, callback=_validate_name, help='Export a single trigger by name')
 @click.pass_context
-def export_triggers(ctx):
+def export_triggers(ctx, name):
     orchestrator = get_orchestrator(ctx.obj['db'], ctx.obj['schema'])
-    asyncio.run(orchestrator.export_triggers())
+    asyncio.run(orchestrator.export_triggers(name=name))
 
 
 @export.command('types', help='Export user-defined types')
+@click.option('--name', default=None, callback=_validate_name, help='Export a single type by name')
 @click.pass_context
-def export_types(ctx):
+def export_types(ctx, name):
     orchestrator = get_orchestrator(ctx.obj['db'], ctx.obj['schema'])
-    asyncio.run(orchestrator.export_types())
+    asyncio.run(orchestrator.export_types(name=name))
 
 
 if __name__ == '__main__':

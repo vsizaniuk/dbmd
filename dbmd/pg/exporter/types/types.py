@@ -32,9 +32,9 @@ class TypesExporter(Exporter):
     async def gather_data(self) -> AsyncGenerator[tuple[MDBaseModel, str | None]]:
         pool = await connect()
         async with pool.acquire() as conn:
-            composite_types = await sql.get_composite_types(conn, self.schema)
-            enum_types      = await sql.get_enum_types(conn, self.schema)
-            domain_types    = await sql.get_domain_types(conn, self.schema)
+            composite_types = await sql.get_composite_types(conn, self.schema, self.name)
+            enum_types      = await sql.get_enum_types(conn, self.schema, self.name)
+            domain_types    = await sql.get_domain_types(conn, self.schema, self.name)
 
         for row in composite_types:
             yield CompositeTypeDetails(

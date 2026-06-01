@@ -25,7 +25,7 @@ class ViewsExporter(Exporter):
     async def gather_data(self) -> AsyncGenerator[tuple[MDBaseModel, str | None]]:
         pool = await connect()
         async with pool.acquire() as conn:
-            views = await sql.get_views(conn, self.schema)
+            views = await sql.get_views(conn, self.schema, self.name)
 
         for row in views:
             view = ViewSchema(

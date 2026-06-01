@@ -23,7 +23,7 @@ class TablesExporter(Exporter):
             conn = self.pool.acquire()
             self.connections.append(conn)
 
-            return sql.get_tables(conn, self.schema)
+            return sql.get_tables(conn, self.schema, self.name)
 
         return await asyncio.to_thread(query_f)
 
@@ -33,7 +33,7 @@ class TablesExporter(Exporter):
             conn = self.pool.acquire()
             self.connections.append(conn)
 
-            return sql.get_table_constraints(conn, self.schema)
+            return sql.get_table_constraints(conn, self.schema, self.name)
 
         return await asyncio.to_thread(query_f)
 
@@ -43,7 +43,7 @@ class TablesExporter(Exporter):
             conn = self.pool.acquire()
             self.connections.append(conn)
 
-            return sql.get_table_triggers(conn, self.schema)
+            return sql.get_table_triggers(conn, self.schema, self.name)
 
         return await asyncio.to_thread(query_f)
 
@@ -53,7 +53,7 @@ class TablesExporter(Exporter):
             conn = self.pool.acquire()
             self.connections.append(conn)
 
-            return sql.get_table_indexes(conn, self.schema)
+            return sql.get_table_indexes(conn, self.schema, self.name)
 
         return await asyncio.to_thread(query_f)
 

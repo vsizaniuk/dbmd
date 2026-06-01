@@ -19,6 +19,7 @@ class TypesSQL(ExporterSQL):
            where ut.typecode = 'COLLECTION'
              and ud.referenced_owner != 'SYS'
              and ut.owner = :schema
+             and (:name is null or ut.type_name = :name)
            group by ud.name)
         select t.type_name, 
                t.collection_type,
@@ -44,6 +45,7 @@ class TypesSQL(ExporterSQL):
 
                  where t.typecode = 'COLLECTION'
                    and t.owner = :schema
+                   and (:name is null or t.type_name = :name)
                  group by t.type_name) t
           left join dependencies d
             on t.type_name = d.name
@@ -67,6 +69,7 @@ class TypesSQL(ExporterSQL):
            )
      where t.typecode != 'COLLECTION'
        and t.owner = :schema
+       and (:name is null or t.type_name = :name)
        and not exists
      (select 1 from all_type_attrs a where a.type_name = t.type_name and a.owner = t.owner)
      group by t.type_name
@@ -86,6 +89,7 @@ class TypesSQL(ExporterSQL):
            where ut.typecode = 'OBJECT'
              and ud.referenced_owner != 'SYS'
              and ut.owner = :schema
+             and (:name is null or ut.type_name = :name)
            group by ud.name),
         attribs as
          (select t.type_name,
@@ -99,6 +103,7 @@ class TypesSQL(ExporterSQL):
         
             from all_type_attrs t
            where t.owner = :schema
+             and (:name is null or t.type_name = :name)
            group by t.type_name),
         methods as
          (select t.type_name,
@@ -114,6 +119,7 @@ class TypesSQL(ExporterSQL):
         
             from all_type_methods t
            where t.owner = :schema
+             and (:name is null or t.type_name = :name)
            group by t.type_name)
         
         select json_object('super_owner' value t.supertype_owner,
@@ -135,6 +141,7 @@ class TypesSQL(ExporterSQL):
         
          where t.typecode = 'OBJECT'
            and t.owner = :schema
+           and (:name is null or t.type_name = :name)
            and exists
          (select 1 from user_type_attrs a where a.type_name = t.type_name)
     '''
@@ -147,6 +154,7 @@ class TypesSQL(ExporterSQL):
           from all_source t
          where t.type in ('TYPE BODY', 'TYPE')
            and t.owner = :schema
+           and (:name is null or t.name = :name)
            and not exists (
                    select 1
                      from all_source s
@@ -158,30 +166,30 @@ class TypesSQL(ExporterSQL):
          group by t.name, t.type
         '''
 
-def get_collection_types(conn: Connection, schema: str):
+def get_collection_types(conn: Connection, schema: str, name: str | None = None):
 
     with conn.cursor() as cur:
-        TypesSQL.select_collection_types.execute(cur, {'schema': schema})
+        TypesSQL.select_collection_types.execute(cur, {'schema': schema, 'name': name})
 
         return cur.fetchall()
 
-def get_scalar_types(conn: Connection, schema: str):
+def get_scalar_types(conn: Connection, schema: str, name: str | None = None):
 
     with conn.cursor() as cur:
-        TypesSQL.select_scalar_types.execute(cur, {'schema': schema})
+        TypesSQL.select_scalar_types.execute(cur, {'schema': schema, 'name': name})
 
         return cur.fetchall()
 
-def get_object_types(conn: Connection, schema: str):
+def get_object_types(conn: Connection, schema: str, name: str | None = None):
 
     with conn.cursor() as cur:
-        TypesSQL.select_object_types.execute(cur, {'schema': schema})
+        TypesSQL.select_object_types.execute(cur, {'schema': schema, 'name': name})
 
         return cur.fetchall()
 
-def get_object_types_definitions(conn: Connection, schema: str):
+def get_object_types_definitions(conn: Connection, schema: str, name: str | None = None):
 
     with conn.cursor() as cur:
-        TypesSQL.select_object_types_definitions.execute(cur, {'schema': schema})
+        TypesSQL.select_object_types_definitions.execute(cur, {'schema': schema, 'name': name})
 
         return cur.fetchall()

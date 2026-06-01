@@ -29,6 +29,7 @@ class TablesSQL(ExporterSQL):
            and a.attnum   > 0
            and not a.attisdropped
            and c.relkind  = 'r'
+           and ($2::text is null or c.relname = $2)
          group by a.attrelid
     )
 
@@ -46,6 +47,7 @@ class TablesSQL(ExporterSQL):
       left join columns cols
         on cols.attrelid = c.oid
      where c.relkind = 'r'
+       and ($2::text is null or c.relname = $2)
      order by c.relname
     '''
 
@@ -63,6 +65,7 @@ class TablesSQL(ExporterSQL):
            and a.attnum   = any(con.conkey)
          where n.nspname      = $1
            and con.contype in ('p', 'u', 'f')
+           and ($2::text is null or t.relname = $2)
          group by con.oid
     ),
     ref_cols as (
@@ -78,6 +81,7 @@ class TablesSQL(ExporterSQL):
            and a.attnum   = any(con.confkey)
          where n.nspname    = $1
            and con.contype  = 'f'
+           and ($2::text is null or t.relname = $2)
          group by con.oid
     )
     select t.relname as table_name,
@@ -107,6 +111,7 @@ class TablesSQL(ExporterSQL):
         on rc.constraint_oid = con.oid
      where n.nspname      = $1
        and con.contype in ('p', 'u', 'f')
+       and ($2::text is null or t.relname = $2)
      group by t.relname
     '''
 
@@ -124,6 +129,7 @@ class TablesSQL(ExporterSQL):
             on n.oid = t.relnamespace,
                generate_series(1, array_length(ix.indkey::smallint[], 1)) as t_rn(rn)
          where n.nspname = $1
+           and ($2::text is null or t.relname = $2)
          group by ix.indexrelid
     )
     select t.relname as table_name,
@@ -149,6 +155,7 @@ class TablesSQL(ExporterSQL):
         on ic.indexrelid = ix.indexrelid
      where n.nspname = $1
        and not ix.indisprimary
+       and ($2::text is null or t.relname = $2)
        and not exists (
                select 1
                  from pg_constraint c
@@ -184,21 +191,22 @@ class TablesSQL(ExporterSQL):
         on pn.oid = p.pronamespace
      where n.nspname      = $1
        and not tr.tgisinternal
+       and ($2::text is null or t.relname = $2)
      group by t.relname
     '''
 
 
-async def get_tables(conn: asyncpg.Connection, schema: str):
-    return await TablesSQL.select_tables.execute(conn, schema)
+async def get_tables(conn: asyncpg.Connection, schema: str, name: str | None = None):
+    return await TablesSQL.select_tables.execute(conn, schema, name)
 
 
-async def get_table_constraints(conn: asyncpg.Connection, schema: str):
-    return await TablesSQL.select_table_constraints.execute(conn, schema)
+async def get_table_constraints(conn: asyncpg.Connection, schema: str, name: str | None = None):
+    return await TablesSQL.select_table_constraints.execute(conn, schema, name)
 
 
-async def get_table_indexes(conn: asyncpg.Connection, schema: str):
-    return await TablesSQL.select_table_indexes.execute(conn, schema)
+async def get_table_indexes(conn: asyncpg.Connection, schema: str, name: str | None = None):
+    return await TablesSQL.select_table_indexes.execute(conn, schema, name)
 
 
-async def get_table_triggers(conn: asyncpg.Connection, schema: str):
-    return await TablesSQL.select_table_triggers.execute(conn, schema)
+async def get_table_triggers(conn: asyncpg.Connection, schema: str, name: str | None = None):
+    return await TablesSQL.select_table_triggers.execute(conn, schema, name)

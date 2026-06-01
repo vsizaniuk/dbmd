@@ -25,6 +25,7 @@ class TriggersSQL(ExporterSQL):
        and dep.referenced_owner != 'SYS'
     
      where :schema = any(tr.owner, tr.table_owner)
+       and (:name is null or tr.trigger_name = :name)
      group by tr.owner,
               tr.trigger_name,
               tr.table_name,
@@ -52,6 +53,7 @@ class TriggersSQL(ExporterSQL):
                            
                   where t.type = 'TRIGGER'
                     and t.owner = :schema
+                    and (:name is null or t.name = :name)
                     and not exists (
                             select 1
                               from all_source s
@@ -66,6 +68,7 @@ class TriggersSQL(ExporterSQL):
            select tr.owner, tr.trigger_name
              from all_triggers tr
             where :schema = any(tr.owner, tr.table_owner)
+              and (:name is null or tr.trigger_name = :name)
             group by tr.owner, tr.trigger_name
         )
               
@@ -115,17 +118,17 @@ class TriggersSQL(ExporterSQL):
     '''
 
 
-def get_triggers(conn: Connection, schema: str):
+def get_triggers(conn: Connection, schema: str, name: str | None = None):
 
     with conn.cursor() as cur:
-        TriggersSQL.select_triggers.execute(cur, {'schema': schema})
+        TriggersSQL.select_triggers.execute(cur, {'schema': schema, 'name': name})
 
         return cur.fetchall()
 
 
-def get_triggers_definitions(conn: Connection, schema: str):
+def get_triggers_definitions(conn: Connection, schema: str, name: str | None = None):
 
     with conn.cursor() as cur:
-        TriggersSQL.select_triggers_definitions.execute(cur, {'schema': schema})
+        TriggersSQL.select_triggers_definitions.execute(cur, {'schema': schema, 'name': name})
 
         return cur.fetchall()

@@ -23,7 +23,8 @@ class Orchestrator:
         self.types    = TypesExporter(self.schema)
 
     @staticmethod
-    async def _run(exporter: Exporter):
+    async def _run(exporter: Exporter, name: str | None = None):
+        exporter.name = name
         try:
             await exporter.export_md()
         except Exception as e:
@@ -42,32 +43,32 @@ class Orchestrator:
             await disconnect()
         logger.info(f'Full export complete for schema: {self.schema}')
 
-    async def export_tables(self):
+    async def export_tables(self, name: str | None = None):
         try:
-            await self._run(self.tables)
+            await self._run(self.tables, name)
         finally:
             await disconnect()
 
-    async def export_views(self):
+    async def export_views(self, name: str | None = None):
         try:
-            await self._run(self.views)
+            await self._run(self.views, name)
         finally:
             await disconnect()
 
-    async def export_routines(self):
+    async def export_routines(self, name: str | None = None):
         try:
-            await self._run(self.routines)
+            await self._run(self.routines, name)
         finally:
             await disconnect()
 
-    async def export_triggers(self):
+    async def export_triggers(self, name: str | None = None):
         try:
-            await self._run(self.triggers)
+            await self._run(self.triggers, name)
         finally:
             await disconnect()
 
-    async def export_types(self):
+    async def export_types(self, name: str | None = None):
         try:
-            await self._run(self.types)
+            await self._run(self.types, name)
         finally:
             await disconnect()
