@@ -37,6 +37,30 @@ class ViewsExporter(Exporter):
                 description=col['description'])
 
 
+    @staticmethod
+    def _quote(text: str) -> str:
+        return "'" + text.replace("'", "''") + "'"
+
+    def build_ddl(self, view: ViewSchema) -> str | None:
+        """CREATE VIEW + comments, assembled from already fetched metadata
+        (cheaper than one DBMS_METADATA.GET_DDL call per view)."""
+        if not view.definition:
+            return None
+
+        full_name = f'"{self.schema}"."{view.name}"'
+        column_list = ', '.join(f'"{c.name}"' for c in view.columns)
+        body = view.definition.strip().rstrip(';').rstrip()
+
+        ddl = f'CREATE OR REPLACE FORCE VIEW {full_name} ({column_list}) AS\n{body};\n'
+
+        if view.description:
+            ddl += f'\nCOMMENT ON TABLE {full_name} IS {self._quote(view.description)};\n'
+        for col in view.columns:
+            if col.description:
+                ddl += f'COMMENT ON COLUMN {full_name}."{col.name}" IS {self._quote(col.description)};\n'
+
+        return ddl
+
     async def gather_data(self) -> AsyncGenerator[tuple[ViewSchema, str | None]]:
         try:
             views = await self.get_views()
@@ -54,7 +78,7 @@ class ViewsExporter(Exporter):
                     definition=view_sql,
                     dependencies=dependencies)
 
-                yield view, None
+                yield view, self.build_ddl(view)
 
         finally:
             self.cleanup()

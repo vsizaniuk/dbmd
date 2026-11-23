@@ -208,6 +208,58 @@ class TablesSQL(ExporterSQL):
        and (:name is null or pt.table_name = :name)
     '''
 
+    set_ddl_transform_params = '''
+    begin
+      dbms_metadata.set_transform_param(dbms_metadata.session_transform, 'SEGMENT_ATTRIBUTES', false);
+      dbms_metadata.set_transform_param(dbms_metadata.session_transform, 'SQLTERMINATOR', true);
+      dbms_metadata.set_transform_param(dbms_metadata.session_transform, 'PRETTY', true);
+    end;
+    '''
+
+    # CREATE TABLE (with constraints) + standalone indexes + comments.
+    # Indexes backing PK/UK constraints are skipped: they are created by the constraint itself.
+    # Objects GET_DDL cannot produce (e.g. SYS_IOT_OVER_* overflow segments) yield null.
+    select_table_ddls = '''
+    with
+      function table_ddl(p_owner varchar2, p_table varchar2) return clob is
+        l_ddl clob;
+      begin
+        l_ddl := dbms_metadata.get_ddl('TABLE', p_table, p_owner);
+
+        for i in (select ix.owner, ix.index_name
+                    from all_indexes ix
+                   where ix.table_owner = p_owner
+                     and ix.table_name  = p_table
+                     and ix.index_type not in ('LOB', 'IOT - TOP')
+                     and not exists (select 1
+                                       from all_constraints c
+                                      where c.owner      = ix.table_owner
+                                        and c.table_name = ix.table_name
+                                        and c.index_name = ix.index_name)
+                   order by ix.index_name)
+        loop
+          l_ddl := l_ddl || dbms_metadata.get_ddl('INDEX', i.index_name, i.owner);
+        end loop;
+
+        begin
+          l_ddl := l_ddl || dbms_metadata.get_dependent_ddl('COMMENT', p_table, p_owner);
+        exception
+          when others then null;  -- ORA-31608: table has no comments
+        end;
+
+        return l_ddl;
+      exception
+        when others then
+          return null;
+      end;
+
+    select t.table_name,
+           table_ddl(t.owner, t.table_name) as ddl
+      from all_tables t
+     where t.owner = :schema
+       and (:name is null or t.table_name = :name)
+    '''
+
 
 def get_tables(conn: Connection, schema: str, name: str | None = None):
 
@@ -247,3 +299,12 @@ def get_table_partitions(conn: Connection, schema: str, name: str | None = None)
         TablesSQL.select_table_partitions.execute(cur, {'schema': schema, 'name': name})
 
         return cur.fetchall()
+
+
+def get_table_ddls(conn: Connection, schema: str, name: str | None = None) -> dict[str, str]:
+
+    with conn.cursor() as cur:
+        TablesSQL.set_ddl_transform_params.execute(cur)
+        TablesSQL.select_table_ddls.execute(cur, {'schema': schema, 'name': name})
+
+        return {table: ddl.read().strip() + '\n' for table, ddl in cur if ddl is not None}

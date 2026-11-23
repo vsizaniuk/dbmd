@@ -45,7 +45,8 @@ class ViewsSQL(ExporterSQL):
                                                                            'length' value c.DATA_LENGTH,
                                                                            'precision' value c.DATA_PRECISION,
                                                                            'scale' value c.DATA_SCALE),
-                                                  'description' value cc.COMMENTS) returning clob) as "columns", v.view_name
+                                                  'description' value cc.COMMENTS)
+                                      order by c.COLUMN_ID returning clob) as "columns", v.view_name
                    from all_tab_columns c
                    join all_col_comments cc
                      on c.TABLE_NAME = cc.TABLE_NAME

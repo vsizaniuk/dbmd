@@ -67,6 +67,16 @@ class TablesExporter(Exporter):
 
         return await asyncio.to_thread(query_f)
 
+    async def get_ddls(self):
+
+        def query_f():
+            conn = self.pool.acquire()
+            self.connections.append(conn)
+
+            return sql.get_table_ddls(conn, self.schema, self.name)
+
+        return await asyncio.to_thread(query_f)
+
     @staticmethod
     def convert_columns(columns):
         if columns:
@@ -185,6 +195,7 @@ class TablesExporter(Exporter):
             triggers = {tab: triggers for tab, triggers in await self.get_triggers()}
             indexes = {tab: indexes for tab, indexes in await self.get_indexes()}
             partitions = {tab: data for tab, *data in await self.get_partitions()}
+            ddls = await self.get_ddls()
 
             for table_name, table_desc, table_columns, row_count in tables:
 
@@ -210,6 +221,6 @@ class TablesExporter(Exporter):
                     elif c_type == 'R':
                         table.foreign_keys.append(cons)
 
-                yield table, None
+                yield table, ddls.get(table_name)
         finally:
             self.cleanup()
