@@ -2,9 +2,9 @@ import os
 import logging
 
 from datetime import datetime
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
-load_dotenv()
+load_dotenv(find_dotenv(usecwd=True))
 
 LOG_LEVEL = os.environ.get('MDDB_LOG_LEVEL', 'INFO')
 WRITE_LOG_FILE = bool(int(os.environ.get('MDDB_WRITE_LOG_FILE', 0)))
