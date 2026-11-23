@@ -1,3 +1,5 @@
 *.env
 mddb/*
 .idea
+build/*
+*.egg-info/*
