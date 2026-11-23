@@ -29,7 +29,7 @@ class ForeignKeyReference(MDBaseModel):
         external = self.db_schema != self.context_schema
 
         if external:
-            res = f'{self.db_schema}.{self.table} ({','.join(self.columns)})'
+            res = f'{self.context_schema}.{self.table} ({','.join(self.columns)})'
         else:
             res = f'{self.table} ({','.join(self.columns)})'
 
