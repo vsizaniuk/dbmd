@@ -60,7 +60,7 @@ class TypesExporter(Exporter):
 
         res = [OTAttribute(name=attr['name'],
                            datatype=ColumnType(**attr['type']),
-                           inherited=bool(attr['inherited']))
+                           inherited=self.yes_no(attr['inherited']))
                for attr in attributes]
 
         return res
@@ -73,11 +73,11 @@ class TypesExporter(Exporter):
         res = [OTMethod(name=m['name'],
                         parameters_cnt=m['parameters_cnt'],
                         type=m['type'],
-                        is_function=bool(m['is_function']),
-                        final=bool(m['is_final']),
-                        instantiable=bool(m['is_instantiable']),
-                        is_overriding=bool(m['is_overriding']),
-                        is_inherited=bool(m['is_inherited']))
+                        is_function=bool(m['is_function']),  # RESULTS: number of return values
+                        final=self.yes_no(m['is_final']),
+                        instantiable=self.yes_no(m['is_instantiable']),
+                        is_overriding=self.yes_no(m['is_overriding']),
+                        is_inherited=self.yes_no(m['is_inherited']))
                for m in methods]
 
         return res

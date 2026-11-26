@@ -43,6 +43,11 @@ class Exporter(ABC):
             res = res.read()
         return res
 
+    @staticmethod
+    def yes_no(value) -> bool:
+        # Oracle dictionary flags are 'YES' / 'NO' strings: bool('NO') is True
+        return value == 'YES'
+
 
     def convert_dependencies(self, dependencies):
         if not isinstance(dependencies, list):
