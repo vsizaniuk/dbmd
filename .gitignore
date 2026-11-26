@@ -3,3 +3,4 @@ mddb/*
 .idea
 build/*
 *.egg-info/*
+tasks/*
