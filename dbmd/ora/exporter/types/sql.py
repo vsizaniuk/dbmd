@@ -143,7 +143,7 @@ class TypesSQL(ExporterSQL):
            and t.owner = :schema
            and (:name is null or t.type_name = :name)
            and exists
-         (select 1 from user_type_attrs a where a.type_name = t.type_name)
+         (select 1 from all_type_attrs a where a.type_name = t.type_name and a.owner = t.owner)
     '''
 
     select_object_types_definitions = '''
